@@ -3,94 +3,231 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from skimage import io, feature, color, filters, img_as_float
+import logging
+import numpy as np
+
 count = 0
 points = []
 
-def draw_line(event,x,y,flags,param):
+# Homomorphic filter class
+
+
+class HomomorphicFilter:
+    """Homomorphic filter implemented with diferents filters and an option to an external filter.
+
+    High-frequency filters implemented:
+        butterworth
+        gaussian
+    Attributes:
+        a, b: Floats used on emphasis filter:
+            H = a + b*H
+
+        .
+    """
+
+    def __init__(self, a=0.5, b=1.5):
+        self.a = float(a)
+        self.b = float(b)
+
+    # Filters
+    def __butterworth_filter(self, I_shape, filter_params):
+        P = I_shape[0]/2
+        Q = I_shape[1]/2
+        U, V = np.meshgrid(range(I_shape[0]), range(
+            I_shape[1]), sparse=False, indexing='ij')
+        Duv = (((U-P)**2+(V-Q)**2)).astype(float)
+        H = 1/(1+(Duv/filter_params[0]**2)**filter_params[1])
+        return (1 - H)
+
+    def __gaussian_filter(self, I_shape, filter_params):
+        P = I_shape[0]/2
+        Q = I_shape[1]/2
+        H = np.zeros(I_shape)
+        U, V = np.meshgrid(range(I_shape[0]), range(
+            I_shape[1]), sparse=False, indexing='ij')
+        Duv = (((U-P)**2+(V-Q)**2)).astype(float)
+        H = np.exp((-Duv/(2*(filter_params[0])**2)))
+        return (1 - H)
+
+    # Methods
+    def __apply_filter(self, I, H):
+        H = np.fft.fftshift(H)
+        I_filtered = (self.a + self.b*H)*I
+        return I_filtered
+
+    def filter(self, I, filter_params, filter='butterworth', H=None):
+        """
+        Method to apply homormophic filter on an image
+        Attributes:
+            I: Single channel image
+            filter_params: Parameters to be used on filters:
+                butterworth:
+                    filter_params[0]: Cutoff frequency
+                    filter_params[1]: Order of filter
+                gaussian:
+                    filter_params[0]: Cutoff frequency
+            filter: Choose of the filter, options:
+                butterworth
+                gaussian
+                external
+            H: Used to pass external filter
+        """
+
+        #  Validating image
+        if len(I.shape) is not 2:
+            raise Exception('Improper image')
+
+        # Take the image to log domain and then to frequency domain
+        I_log = np.log1p(np.array(I, dtype="float"))
+        I_fft = np.fft.fft2(I_log)
+
+        # Filters
+        if filter == 'butterworth':
+            H = self.__butterworth_filter(
+                I_shape=I_fft.shape, filter_params=filter_params)
+        elif filter == 'gaussian':
+            H = self.__gaussian_filter(
+                I_shape=I_fft.shape, filter_params=filter_params)
+        elif filter == 'external':
+            print('external')
+            if len(H.shape) is not 2:
+                raise Exception('Invalid external filter')
+        else:
+            raise Exception('Selected filter not implemented')
+
+        # Apply filter on frequency domain then take the image back to spatial domain
+        I_fft_filt = self.__apply_filter(I=I_fft, H=H)
+        I_filt = np.fft.ifft2(I_fft_filt)
+        I = np.exp(np.real(I_filt))-1
+        return np.uint8(I)
+# End of class HomomorphicFilter
+
+
+def draw_line(event, x, y, flags, param):
     global points, count
     if event == cv.EVENT_LBUTTONDOWN:
-        points.append(x,y)
+        points.append(x, y)
         count = count + 1
-        if(count >= count%2):
-            cv.line(tozero,points[0],points[1],(255,0,0),5)
+        if(count >= count % 2):
+            cv.line(tozero, points[0], points[1], (255, 0, 0), 5)
             count = 0
     if event == cv.EVENT_LBUTTONDOWN:
         drawing = True
-        ix,iy = x,y
+        ix, iy = x, y
 
     elif event == cv.EVENT_MOUSEMOVE:
         if drawing == True:
             if mode == True:
-                cv.rectangle(img,(ix,iy),(x,y),(0,255,0),-1)
+                cv.rectangle(img, (ix, iy), (x, y), (0, 255, 0), -1)
             else:
-                cv.circle(img,(x,y),5,(0,0,255),-1)
+                cv.circle(img, (x, y), 5, (0, 0, 255), -1)
 
     elif event == cv.EVENT_LBUTTONUP:
         drawing = False
         if mode == True:
-            cv.rectangle(img,(ix,iy),(x,y),(0,255,0),-1)
+            cv.rectangle(img, (ix, iy), (x, y), (0, 255, 0), -1)
         else:
-            cv.circle(img,(x,y),5,(0,0,255),-1)
+            cv.circle(img, (x, y), 5, (0, 0, 255), -1)
 
-def plot_treatement(i):
-    image_to_read = 'png/img' + str(i) + '.png'
+
+'''
+# sliders
+# create trackbars for color change.
+'''
+
+
+def nothing(x):
+    pass
+
+
+# create switch for ON/OFF functionality
+switch = '0 : OFF \n1 : ON'
+cv.createTrackbar(switch, 'image', 0, 1, nothing)
+
+cv.createTrackbar('R', 'image', 0, 255, nothing)
+cv.createTrackbar('G', 'image', 0, 255, nothing)
+cv.createTrackbar('B', 'image', 0, 255, nothing)
+
+nImg = 0
+maxImag = 1
+
+while(nImg < maxImag):
+    image_to_read = 'png/img' + str(nImg) + '.png'
+    nImg = nImg+1
     print(image_to_read)
-    img = cv.imread(image_to_read,0)
-    canny_img = cv.Canny(img,80,200)
+    img = cv.imread(image_to_read, 0)
+    canny_img = cv.Canny(img, 60, 200)
 
-    ret,tozero = cv.threshold(img,170,255,cv.THRESH_TOZERO)
-    canny_tozero = cv.Canny(tozero,80,200)
+    cv.imshow('image', img)
+    k = cv.waitKey(1) & 0xFF
+    if k == 27:
+                break
+        # get current positions of four trackbars
+    r = cv.getTrackbarPos('R', 'image')
+    g = cv.getTrackbarPos('G', 'image')
+    b = cv.getTrackbarPos('B', 'image')
+    s = cv.getTrackbarPos(switch, 'image')
+   
 
-    median_blur = cv.medianBlur(tozero,5)
-    canny_median_blur = cv.Canny(median_blur,80,200)
+    #
+    # esses passos são para tentar
+    # deixar a divisão de branco e
+    # preto mais unifor:
+    # 1 - equalizar histograma
+    #  não foi usado pq não valia a pena
 
-    adaptative_gaussian = cv.adaptiveThreshold(tozero,255,\
-        cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv.THRESH_BINARY,11,2)
-    canny_adaptative_gaussian = cv.Canny(adaptative_gaussian,80,200)
+    # 2 - filtro homomorfico
 
+    homo_filter = HomomorphicFilter(a=0.75, b=1.25)
+    img = homo_filter.filter(I=img, filter_params=[30, 2])
 
-    adaptative_mean = cv.adaptiveThreshold(tozero,255,\
-        cv.ADAPTIVE_THRESH_MEAN_C,\
-            cv.THRESH_BINARY,11,2)
-    canny_adaptative_mean = cv.Canny(adaptative_mean,80,200)
+    ret, tozero = cv.threshold(img, 80, 255, cv.THRESH_TOZERO)
+    canny_tozero = cv.Canny(tozero, 80, 200)
 
+    median_blur = cv.medianBlur(tozero, 5)
+    canny_median_blur = cv.Canny(median_blur, 80, 200)
 
-    ret,binary = cv.threshold(tozero,127,255,cv.THRESH_BINARY)
-    canny_binary = cv.Canny(img,80,200)
+    adaptative_gaussian = cv.adaptiveThreshold(tozero, 255,
+                                               cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                               cv.THRESH_BINARY, 11, 2)
+    canny_adaptative_gaussian = cv.Canny(adaptative_gaussian, 80, 200)
 
+    adaptative_mean = cv.adaptiveThreshold(tozero, 255,
+                                           cv.ADAPTIVE_THRESH_MEAN_C,
+                                           cv.THRESH_BINARY, 11, 2)
+    canny_adaptative_mean = cv.Canny(adaptative_mean, 80, 200)
 
+    ret, binary = cv.threshold(tozero, 127, 255, cv.THRESH_BINARY)
+    canny_binary = cv.Canny(img, 80, 200)
 
+    titles = ['Original Image', 'TOZERO', 'median_blur',
+              'ADAPTIVE_THRESH_GAUSSIAN_C', 'adaptative_mean',
+              'binary threshold', '.', '..', '.', '..', '.', '..']
 
-    titles = ['Original Image','TOZERO','median_blur',\
-        'ADAPTIVE_THRESH_GAUSSIAN_C','adaptative_mean',\
-            'binary threshold','.','..','.','..','.','..' ]
-
-    images = [img, tozero, median_blur, adaptative_gaussian,\
-        adaptative_mean, binary,\
-            canny_img, canny_tozero, canny_median_blur,\
-                canny_adaptative_gaussian,\
-        canny_adaptative_mean, canny_binary]
+    images = [img, tozero, median_blur, adaptative_gaussian,
+              adaptative_mean, binary,
+              canny_img, canny_tozero, canny_median_blur,
+              canny_adaptative_gaussian,
+              canny_adaptative_mean, canny_binary]
     events = [i for i in dir(cv) if 'EVENT' in i]
 
     for i in range(12):
-        plt.subplot(2,6,i+1),plt.imshow(images[i],'gray')
+        plt.subplot(2, 6, i+1), plt.imshow(images[i], 'gray')
         plt.title(titles[i])
-        plt.xticks([]),plt.yticks([])
+        plt.xticks([]), plt.yticks([])
     plt.show()
-
-for i in range(16):
-    plot_treatement(i)
-
-while(1):
-    img = np.zeros((512,512,3), np.uint8)
+    '''
+    img = np.zeros((512, 512, 3), np.uint8)
     cv.namedWindow('image')
-    cv.setMouseCallback('image',draw_line)
+    cv.setMouseCallback('image', draw_line)
 
-    cv.imshow('image',tozero)
-    if cv.waitKey(20) & 0xFF == 27:
+    cv.imshow('image', tozero)'''
+    if cv.waitKey(500) & 0xFF == 27:
         break
+
 cv.destroyAllWindows()
+
+
 '''
 if __name__ == "__main__":
     main()
@@ -98,7 +235,7 @@ if __name__ == "__main__":
 
 '''
 # Find the contours
-#imgray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+# imgray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 edges = cv.Canny(img,60,200)
 im2, contours, hierarchy = cv.findContours(edges, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
