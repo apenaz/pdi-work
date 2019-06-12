@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 
 from skimage import io, feature, color, filters, img_as_float
 import logging
-import numpy as np
 
 count = 0
 points = []
@@ -141,89 +140,93 @@ def nothing(x):
 
 
 # create switch for ON/OFF functionality
+img = np.zeros((512,100,3), np.uint8)
 switch = '0 : OFF \n1 : ON'
+cv.imshow('image', img)
 cv.createTrackbar(switch, 'image', 0, 1, nothing)
 
 cv.createTrackbar('R', 'image', 0, 255, nothing)
 cv.createTrackbar('G', 'image', 0, 255, nothing)
 cv.createTrackbar('B', 'image', 0, 255, nothing)
+r = cv.getTrackbarPos('R', 'image')
+g = cv.getTrackbarPos('G', 'image')
+b = cv.getTrackbarPos('B', 'image')
+s = cv.getTrackbarPos(switch, 'image')
 
 nImg = 0
 maxImag = 1
 
-while(nImg < maxImag):
-    image_to_read = 'png/img' + str(nImg) + '.png'
-    nImg = nImg+1
-    print(image_to_read)
-    img = cv.imread(image_to_read, 0)
-    canny_img = cv.Canny(img, 60, 200)
 
-    cv.imshow('image', img)
-    k = cv.waitKey(1) & 0xFF
-    if k == 27:
-                break
-        # get current positions of four trackbars
-    r = cv.getTrackbarPos('R', 'image')
-    g = cv.getTrackbarPos('G', 'image')
-    b = cv.getTrackbarPos('B', 'image')
-    s = cv.getTrackbarPos(switch, 'image')
-   
+image_to_read = 'png/img' + str(nImg) + '.png'
+nImg = nImg+1
+print(image_to_read)
+img = cv.imread(image_to_read, 0)
+canny_img = cv.Canny(img, 60, 200)
 
-    #
-    # esses passos são para tentar
-    # deixar a divisão de branco e
-    # preto mais unifor:
-    # 1 - equalizar histograma
-    #  não foi usado pq não valia a pena
+cv.imshow('image', img)
+k = cv.waitKey(1) & 0xFF
+if k == 27:
+            break
+    # get current positions of four trackbars
+r = cv.getTrackbarPos('R', 'image')
+g = cv.getTrackbarPos('G', 'image')
+b = cv.getTrackbarPos('B', 'image')
+s = cv.getTrackbarPos(switch, 'image')
 
-    # 2 - filtro homomorfico
 
-    homo_filter = HomomorphicFilter(a=0.75, b=1.25)
-    img = homo_filter.filter(I=img, filter_params=[30, 2])
+#
+# esses passos são para tentar
+# deixar a divisão de branco e
+# preto mais unifor:
+# 1 - equalizar histograma
+#  não foi usado pq não valia a pena
 
-    ret, tozero = cv.threshold(img, 80, 255, cv.THRESH_TOZERO)
-    canny_tozero = cv.Canny(tozero, 80, 200)
+# 2 - filtro homomorfico
 
-    median_blur = cv.medianBlur(tozero, 5)
-    canny_median_blur = cv.Canny(median_blur, 80, 200)
+homo_filter = HomomorphicFilter(a=0.75, b=1.25)
+img = homo_filter.filter(I=img, filter_params=[30, 2])
 
-    adaptative_gaussian = cv.adaptiveThreshold(tozero, 255,
-                                               cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                               cv.THRESH_BINARY, 11, 2)
-    canny_adaptative_gaussian = cv.Canny(adaptative_gaussian, 80, 200)
+ret, tozero = cv.threshold(img, 80, 255, cv.THRESH_TOZERO)
+canny_tozero = cv.Canny(tozero, 80, 200)
 
-    adaptative_mean = cv.adaptiveThreshold(tozero, 255,
-                                           cv.ADAPTIVE_THRESH_MEAN_C,
-                                           cv.THRESH_BINARY, 11, 2)
-    canny_adaptative_mean = cv.Canny(adaptative_mean, 80, 200)
+median_blur = cv.medianBlur(tozero, 5)
+canny_median_blur = cv.Canny(median_blur, 80, 200)
 
-    ret, binary = cv.threshold(tozero, 127, 255, cv.THRESH_BINARY)
-    canny_binary = cv.Canny(img, 80, 200)
+adaptative_gaussian = cv.adaptiveThreshold(tozero, 255,
+                                            cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                            cv.THRESH_BINARY, 11, 2)
+canny_adaptative_gaussian = cv.Canny(adaptative_gaussian, 80, 200)
 
-    titles = ['Original Image', 'TOZERO', 'median_blur',
-              'ADAPTIVE_THRESH_GAUSSIAN_C', 'adaptative_mean',
-              'binary threshold', '.', '..', '.', '..', '.', '..']
+adaptative_mean = cv.adaptiveThreshold(tozero, 255,
+                                        cv.ADAPTIVE_THRESH_MEAN_C,
+                                        cv.THRESH_BINARY, 11, 2)
+canny_adaptative_mean = cv.Canny(adaptative_mean, 80, 200)
 
-    images = [img, tozero, median_blur, adaptative_gaussian,
-              adaptative_mean, binary,
-              canny_img, canny_tozero, canny_median_blur,
-              canny_adaptative_gaussian,
-              canny_adaptative_mean, canny_binary]
-    events = [i for i in dir(cv) if 'EVENT' in i]
+ret, binary = cv.threshold(tozero, 127, 255, cv.THRESH_BINARY)
+canny_binary = cv.Canny(img, 80, 200)
 
-    for i in range(12):
-        plt.subplot(2, 6, i+1), plt.imshow(images[i], 'gray')
-        plt.title(titles[i])
-        plt.xticks([]), plt.yticks([])
-    plt.show()
-    '''
-    img = np.zeros((512, 512, 3), np.uint8)
-    cv.namedWindow('image')
-    cv.setMouseCallback('image', draw_line)
+titles = ['Original Image', 'TOZERO', 'median_blur',
+            'ADAPTIVE_THRESH_GAUSSIAN_C', 'adaptative_mean',
+            'binary threshold', '.', '..', '.', '..', '.', '..']
 
-    cv.imshow('image', tozero)'''
-    if cv.waitKey(500) & 0xFF == 27:
-        break
+images = [img, tozero, median_blur, adaptative_gaussian,
+            adaptative_mean, binary,
+            canny_img, canny_tozero, canny_median_blur,
+            canny_adaptative_gaussian,
+            canny_adaptative_mean, canny_binary]
+events = [i for i in dir(cv) if 'EVENT' in i]
+
+for i in range(12):
+    plt.subplot(2, 6, i+1), plt.imshow(images[i], 'gray')
+    plt.title(titles[i])
+    plt.xticks([]), plt.yticks([])
+plt.show()
+'''
+img = np.zeros((512, 512, 3), np.uint8)
+cv.namedWindow('image')
+cv.setMouseCallback('image', draw_line)
+
+cv.imshow('image', tozero)'''
 
 cv.destroyAllWindows()
 
