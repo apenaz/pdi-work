@@ -6,71 +6,62 @@
 using namespace cv;
 using namespace std;
 
-
+String image_name;
 bool save = false;
-bool call_mmq = false;
 vector<Point2i> pointList;
+ofstream outFile;
+
+void mmq();
+void CallBackFunc(int event, int x, int y, int flags, void *image_name);
 
 void CallBackFunc(int event, int x, int y, int flags, void *image_name)
 {
      if (event == EVENT_LBUTTONDOWN)
      {
           save = true;
-          std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
      }
      else if (event == EVENT_LBUTTONUP)
      {
-          setMouseCallback((char*)image_name, NULL, NULL);
           save = false;
-          call_mmq = true;
-          std::cout << "call_mmq: " << call_mmq << endl;
-          std::cout << "Left button of the mouse is realese - position (" << x << ", " << y << ")" << endl;
-     }
-     else if (event == EVENT_RBUTTONDOWN)
-     {
-          std::cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-     }
-     else if (event == EVENT_MBUTTONDOWN)
-     {
-          std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+          mmq();
      }
      else if (event == EVENT_MOUSEMOVE)
      {
           if (save)
           {
-               std::cout << "SAVED - position (" << x << ", " << y << ")" << endl;
-               pointList.push_back(Point(x,y));
-          }
-          else
-          {
-               std::cout << "position (" << x << ", " << y << ")"
-                    << "NOT SAVED" << endl;
+               pointList.push_back(Point(x, y));
           }
      }
 }
 
-void mmq(const String window_name)
+void mmq()
 {
      std::cout << "mmq function" << endl;
-     if (call_mmq)
-     {
-          for (uint64_t n = 0; n < pointList.size(); n++)
-          {
-               Point myPoint = pointList[n];
-               std::cout << myPoint << "..";
-          }
-          std::cout << endl;
+     String file = image_name + ".abj";
+     outFile.open(file , std::ios_base::app);
+     if (! outFile) 
+    {
+        cout << "erro" << file << endl; 
+        abort(); 
+    } 
+     for (uint64_t n = 0; n < pointList.size(); n++)
+     { //calcula os coeficientes a e b;
+          Point myPoint = pointList[n];
+          outFile << myPoint << " ";
+          std::cout << myPoint << " ";
      }
-     call_mmq = false;
-     std::cout << "END mmq() call_mmq: " << call_mmq << endl;
-     
-     setMouseCallback(window_name, CallBackFunc, NULL);
+     std::cout << endl;
+     outFile << endl;
+     outFile.close();
 }
 
 int main(int argc, char **argv)
 {
-     const String image_name = argv[1];
+     image_name = argv[1]; /* C:/path/ */
      Mat image;
+     char k;
+     namedWindow(image_name, WINDOW_KEEPRATIO);
+     setMouseCallback(image_name, CallBackFunc, NULL);
 
      if (argc != 2)
      {
@@ -83,18 +74,10 @@ int main(int argc, char **argv)
           printf("No image data \n");
           return -1;
      }
-     char k;
-     namedWindow(image_name, WINDOW_KEEPRATIO);
-     setMouseCallback(image_name, CallBackFunc, NULL);
      while (1)
      {
           namedWindow(image_name, WINDOW_KEEPRATIO);
           imshow(image_name, image);
-
-          if (call_mmq)
-          {
-               mmq(image_name);
-          }
 
           k = waitKey(0);
           if (k == 27)
