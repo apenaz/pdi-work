@@ -117,7 +117,6 @@ void CallBackFunc(int event, int x, int y, int flags, void *image_name)
           }
           outFile << endl;
           outFile.close();
-          pointList.clear();
      }
      else if (event == EVENT_RBUTTONDOWN)
      {
@@ -150,21 +149,26 @@ void mmq()
      cout << "mmq function" << endl;
      double a0 = 0;
      double a1 = 0;
-     int sx = 0;
-     int sy = 0;
-     int sxy = 0;
-     int sx2 = 0;
+     double x, y;
+     double sx = 0;
+     double sy = 0;
+     double sxy = 0;
+     double sx2 = 0;
      uint16_t n = pointList.size();
      cout << "number of point: " << n << endl;
      if (n > 0)
      {
-          for (uint16_t i = 0; i < pointList.size(); n++)
+          cout << "x\ty" << endl;
+          for (uint16_t i = 0; i < n; i++)
           {
                Point myPoint = pointList[i];
-               sx = sx + myPoint.x;
-               sy = sy + myPoint.y;
-               sx2 = sx2 + myPoint.x * myPoint.x;
-               sxy = sxy + myPoint.x * myPoint.y;
+               x = myPoint.x;
+               y = myPoint.y;
+               cout << x << "\t" << y << endl;
+               sx = sx + x;
+               sy = sy + y;
+               sx2 = sx2 + x * x;
+               sxy = sxy + x * y;
           }
           a0 = (sy * sx2 - sx * sxy) / (n * sx2 - sx * sx);
           a1 = (n * sxy - sx * sy) / (n * sx2 - sx * sx);
