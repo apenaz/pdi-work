@@ -67,14 +67,14 @@ int main(int argc, char **argv)
           else if (k == 'r')
           {
                //restart pointList
-               cout << "reset image" << endl;
+               cout << "wait reset image" << endl;
                image = imread(image_name, 4);
                pointList.clear();
                m_vector.clear();
           }
           else if (k == 's')
           {
-               printf("Saving \n");
+               cout << "Saving" << endl;
                String outputimage = image_name + date + "out.png";
                imwrite(outputimage, image);
                cout << "Saved" << endl;
@@ -93,7 +93,10 @@ void CallBackFunc(int event, int x, int y, int flags, void *image_name)
      {
           save = false;
      }
-
+     else if (event == EVENT_RBUTTONDOWN)
+     {
+          mmq();
+     }
      else if (event == EVENT_LBUTTONDBLCLK)
      {
           save = false;
@@ -127,7 +130,7 @@ void CallBackFunc(int event, int x, int y, int flags, void *image_name)
                       2,                      //Type of the circle boundary. See the line() description.
                       0);                     //Number of fractional bits in the coordinates of the center and in the radius value.
                       */
-                    circle(image, Point(x, y), radius, Scalar(0, 255, 0), 100, 8, 0);
+                    circle(image, Point(x, y), radius, Scalar(0, 255, 0), radius*0.5, 8, 0);
                }
           }
      }
@@ -135,7 +138,6 @@ void CallBackFunc(int event, int x, int y, int flags, void *image_name)
 
 void mmq()
 {
-     cout << "mmq function" << endl;
      double a0 = 0;
      double a1 = 0;
      double x, y;
@@ -144,16 +146,13 @@ void mmq()
      double sxy = 0;
      double sx2 = 0;
      uint16_t n = pointList.size();
-     cout << "number of point: " << n << endl;
      if (n > 0)
      {
-          cout << "x\ty" << endl;
           for (uint16_t i = 0; i < n; i++)
           {
                Point myPoint = pointList[i];
                x = myPoint.x;
                y = myPoint.y;
-               cout << x << "\t" << y << endl;
                sx = sx + x;
                sy = sy + y;
                sx2 = sx2 + x * x;
@@ -173,23 +172,26 @@ void mmq()
           outFile << endl;
      }
      int total_m = m_vector.size();
-     cout << "total_m: " << total_m << endl;
-     while (total_m % 2 == 0 && total_m > 1)
+     while (total_m > 1)
      {
-
-          double angle = atan(abs((m_vector[total_m] - m_vector[total_m - 1]) / (1 + m_vector[total_m] * m_vector[total_m - 1])));
-
-          angle = (180.0 / M_PI) * angle;
-          cout << "cobb angle: " << angle << endl;
-          outFile << "cobb angle: " << angle << endl;
-          total_m-=2;
+          if (total_m % 2 == 0)
+          {
+               double angle = atan(abs((m_vector[total_m - 1] - m_vector[total_m - 2]) / (1 + m_vector[total_m - 1] * m_vector[total_m - 2])));
+               angle = (180.0 / M_PI) * angle;
+               cout << "cobb angle: " << angle << endl;
+               outFile << "cobb angle: " << angle << endl;
+               total_m -= 2;
+          }
+          else
+          {
+               total_m--;
+          }
      }
-     cout << " coeficientes a0 e a1: " << a0 << ", " << a1 << endl;
      int x0 = 1;
      int y0 = a0 + a1 * x0;
      int xn = image.cols - 1;
      int yn = a0 + a1 * xn;
-     line(image, Point(x0, y0), Point(xn, yn), Scalar(0, 0, 250), radius, 8, 0);
+     line(image, Point(x0, y0), Point(xn, yn), Scalar(0, 0, 250), radius*0.5, 8, 0);
      pointList.clear();
      outFile.close();
 }
