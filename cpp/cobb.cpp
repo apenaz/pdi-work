@@ -5,13 +5,6 @@
 #include <ctime>
 #include <stdio.h>
 #include <iostream>
-#include <string>
-#include "opencv2/core/core.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
 
 using namespace cv;
 using namespace std;
@@ -21,7 +14,7 @@ String image_name;
 String file;
 String file_mmq;
 vector<Point2i> pointList;
-int radius = 8;
+double radius = 0.1;
 bool save = false;
 ofstream outFile;
 
@@ -54,6 +47,7 @@ int main(int argc, char **argv)
           return -1;
      }
      image = imread(image_name, 4);
+     radius *=  image.rows;
      if (!image.data)
      {
           cout << "No image data" << endl;
@@ -185,5 +179,10 @@ void mmq()
      }
 
      cout << " coeficientes a0 e a1: " << a0 << ", " << a1 << endl;
+     x0 = 1;
+     y0 = a0+a1*x0;
+     xn = image.cols-1;
+     yn = a0+a1*xn
+     line(image. Point(x0,y0),Point(xn,yn),Scalar(0, 0,250), radius, 8,  );
      pointList.clear();
 }
