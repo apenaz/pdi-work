@@ -1,31 +1,29 @@
-#include <stdio.h>
-#include <iostream>
-#include <opencv2/opencv.hpp>
-#include "opencv2/highgui/highgui.hpp"
+#include <cmath>
 #include <ctime>
 #include <stdio.h>
 #include <iostream>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace cv;
 using namespace std;
-
 Mat image;
 String image_name;
 String file;
 String file_mmq;
 vector<Point2i> pointList;
-double radius = 0.1;
+vector<double_t> m_vector;
+double radius = 0.01;
 bool save = false;
 ofstream outFile;
-
 void mmq();
 void CallBackFunc(int event, int x, int y, int flags, void *image_name);
 
 int main(int argc, char **argv)
 {
-     time_t start = std::time(0); // get time now
+     time_t start = time(0); // get time now
      cout << "Started at:" << endl;
-     tm *now = std::localtime(&start);
+     tm *now = localtime(&start);
      int y = (now->tm_year + 1900),
          m = (now->tm_mon + 1),
          d = now->tm_mday,
@@ -47,7 +45,7 @@ int main(int argc, char **argv)
           return -1;
      }
      image = imread(image_name, 4);
-     radius *=  image.rows;
+     radius *= image.rows;
      if (!image.data)
      {
           cout << "No image data" << endl;
@@ -72,6 +70,7 @@ int main(int argc, char **argv)
                cout << "reset image" << endl;
                image = imread(image_name, 4);
                pointList.clear();
+               m_vector.clear();
           }
           else if (k == 's')
           {
@@ -98,7 +97,7 @@ void CallBackFunc(int event, int x, int y, int flags, void *image_name)
      else if (event == EVENT_LBUTTONDBLCLK)
      {
           save = false;
-          outFile.open(file, std::ios_base::app);
+          outFile.open(file, ios_base::app);
           if (!outFile)
           {
                cout << "erro" << file << endl;
@@ -111,12 +110,8 @@ void CallBackFunc(int event, int x, int y, int flags, void *image_name)
           }
           outFile << endl;
           outFile.close();
-     }
-     else if (event == EVENT_RBUTTONDOWN)
-     {
           mmq();
      }
-
      else if (event == EVENT_MOUSEMOVE)
      {
           if (save)
@@ -166,7 +161,8 @@ void mmq()
           }
           a0 = (sy * sx2 - sx * sxy) / (n * sx2 - sx * sx);
           a1 = (n * sxy - sx * sy) / (n * sx2 - sx * sx);
-          outFile.open(file_mmq, std::ios_base::app);
+          m_vector.push_back(a1);
+          outFile.open(file_mmq, ios_base::app);
           if (!outFile)
           {
                cout << "erro" << file << endl;
@@ -175,14 +171,25 @@ void mmq()
           Point2d myPoint = Point2d(a0, a1);
           outFile << myPoint;
           outFile << endl;
-          outFile.close();
      }
+     int total_m = m_vector.size();
+     cout << "total_m: " << total_m << endl;
+     while (total_m % 2 == 0 && total_m > 1)
+     {
 
+          double angle = atan(abs((m_vector[total_m] - m_vector[total_m - 1]) / (1 + m_vector[total_m] * m_vector[total_m - 1])));
+
+          angle = (180.0 / M_PI) * angle;
+          cout << "cobb angle: " << angle << endl;
+          outFile << "cobb angle: " << angle << endl;
+          total_m-=2;
+     }
      cout << " coeficientes a0 e a1: " << a0 << ", " << a1 << endl;
-     x0 = 1;
-     y0 = a0+a1*x0;
-     xn = image.cols-1;
-     yn = a0+a1*xn
-     line(image. Point(x0,y0),Point(xn,yn),Scalar(0, 0,250), radius, 8,  );
+     int x0 = 1;
+     int y0 = a0 + a1 * x0;
+     int xn = image.cols - 1;
+     int yn = a0 + a1 * xn;
+     line(image, Point(x0, y0), Point(xn, yn), Scalar(0, 0, 250), radius, 8, 0);
      pointList.clear();
+     outFile.close();
 }
